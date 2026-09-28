@@ -1,0 +1,53 @@
+graph TB
+    %% Вхідні зовнішні сутності (для контексту)
+    cam_hw[/"Відеокамери"/]
+    weight_hw[/"Тензодатчики"/]
+
+    subgraph EdgeController ["Софт Edge-контролера стелажа (Smart Shelf Software)"]
+        
+        subgraph Drivers ["Рівень збору даних (Hardware I/O)"]
+            cam_driver["Драйвер камери<br/>(V4L2)"]
+            scale_driver["Драйвер датчиків ваги<br/>(SPI / Modbus)"]
+        end
+
+        subgraph Analytics ["Рушій аналітики (Sensor Fusion)"]
+            cv_module["Модуль комп'ютерного зору<br/>(Трекінг рук та осередків)"]
+            weight_filter["Фільтр ваги<br/>(Відсікання механічних шумів)"]
+            fusion_core["Ядро Sensor Fusion<br/>(Кореляція подій за часом)"]
+        end
+
+        subgraph Logic ["Бізнес-логіка та стан"]
+            cart_mgr["Менеджер віртуального кошика<br/>(Керування сесіями)"]
+            local_db[("Локальний буфер<br/>(SQLite)")]
+        end
+
+        subgraph Gateways ["Мережеві шлюзи (Egress)"]
+            ws_server["WebSocket шлюз<br/>(Real-time API)"]
+            mqtt_client["Служба хмарної<br/>синхронізації (MQTT)"]
+        end
+
+        %% Зв'язки з обладнанням
+        cam_hw -.->|"USB/MIPI"| cam_driver
+        weight_hw -.->|"Цифрові відліки"| scale_driver
+
+        %% Потоки даних всередині
+        cam_driver -->|"кадри 25 fps"| cv_module
+        scale_driver -->|"відліки 50 Гц"| weight_filter
+        
+        cv_module -->|"координати руки (x,y,t)"| fusion_core
+        weight_filter -->|"чиста зміна ваги (Δm,t)"| fusion_core
+        
+        fusion_core -->|"подія: +товар / -товар"| cart_mgr
+        fusion_core -.->|"фото оклюзій (FR-07)"| local_db
+        
+        cart_mgr -->|"збереження транзакції"| local_db
+        cart_mgr -->|"push-оновлення чека"| ws_server
+        local_db -->|"фонова вичитка чеків"| mqtt_client
+    end
+
+    %% Вихідні зовнішні сутності
+    app[/"Мобільний додаток"/]
+    cloud[/"Хмарний бекенд"/]
+
+    ws_server ===>|"JSON події"| app
+    mqtt_client ===>|"TLS / гарантована доставка"| cloud
