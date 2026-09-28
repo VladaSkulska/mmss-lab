@@ -1,0 +1,43 @@
+graph TB
+    subgraph StoreFacility ["Будівля магазину (Локальна інфраструктура)"]
+        
+        subgraph ShelfHardware ["Фізичний стелаж (Smart Shelf Unit)"]
+            weightSensors["Тензометричні платформи під полицями"]
+            cameras["Оглядова та бічні камери (1080p)"]
+            qrScanner["Оптичний сканер сесій / QR"]
+            
+            subgraph EdgeNode ["Периферійний комп'ютер (Edge IPC)"]
+                sensorProc["Процесорний модуль (CPU/NPU)"]
+                sqliteStorage[("Локальний накопичувач<br/>(NVMe/SSD)")]
+                wifiAp(("Вбудована точка<br/>доступу Wi-Fi"))
+            end
+        end
+        
+        storeRouter{"Маршрутизатор / Firewall"}
+    end
+
+    subgraph UserDevice ["Смартфон покупця"]
+        mobileApp["Мобільний клієнт"]
+    end
+
+    subgraph CloudInfra ["Хмарний сервер магазину"]
+        cloudBroker["Центральний брокер MQTT"]
+        cloudBilling["Сервіс оплат і складського обліку"]
+    end
+
+    %% Апаратні шини
+    weightSensors -->|"шина SPI"| sensorProc
+    cameras -->|"MIPI-CSI / USB 3.0"| sensorProc
+    qrScanner -->|"USB UART"| sensorProc
+    
+    %% Локальне збереження
+    sensorProc -->|"PCIe / SATA"| sqliteStorage
+    
+    %% Мережа покупця
+    sensorProc -->|"внутрішня шина"| wifiAp
+    wifiAp <-->|"WebSocket (WSS)"| mobileApp
+    
+    %% Зовнішня мережа
+    sensorProc -->|"LAN (Ethernet)"| storeRouter
+    storeRouter -.->|"WAN (MQTT TLS)"| cloudBroker
+    cloudBroker --> cloudBilling
