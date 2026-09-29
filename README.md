@@ -20,6 +20,18 @@
 
 ```text
 mmss-lab/
-├── README.md               # Загальний опис проєкту
+├── README.md                   # Загальний опис проєкту та предметної області
 └── docs/
-    └── requirements.md     # Контекст, зацікавлені сторони, реєстр даних, вимоги (FR / NFR)
+    ├── requirements.md         # Контекст, зацікавлені сторони, реєстр даних, вимоги (FR/NFR), зв'язок подань
+    ├── quality-scenarios.md    # Сценарії атрибутів якості (продуктивність, відмовостійкість)
+    ├── adr/                    # Архітектурні рішення (Architecture Decision Records)
+    │   ├── 0001-edge-processing.md     # Обробка комп'ютерного зору на Edge-контролері
+    │   ├── 0002-transport-protocol.md # Вибір транспортних протоколів WebSocket та MQTT
+    │   └── 0003-storage-strategy.md   # Подієве збереження та ротація фотофіксації
+    └── diagrams/               # Архітектурні діаграми (Mermaid-код та векторні SVG)
+        ├── context.mmd         # Діаграма системного контексту (C4 Level 1)
+        ├── context.svg
+        ├── components.mmd      # Компонентне подання внутрішнього софту Edge-вузла
+        ├── components.svg
+        ├── deployment.mmd      # Фізична топологія та діаграма розгортання
+        └── deployment.svg
